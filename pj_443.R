@@ -1,6 +1,7 @@
 library(tidyverse)
 library(lubridate)
 library(stats)
+library(glmnet)
 setwd('D:\\LSE\\ST443 Machine Learning and Data Mining\\pj')
 bike_raw <- as.tibble(read.csv('london_merged.csv'))
 bike <- bike_raw %>%
