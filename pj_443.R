@@ -44,7 +44,6 @@ yhat_knn <- knn.reg(bike_x, bike_x_test, bike_y, k = 10)
 summary((yhat_knn$pred - bike$cnt[test_index])^2)
 #######################
 bike_month <- bike %>%
-  mutate(month = month(date)) %>%
   group_by(month) %>%
   mutate(monthuse = mean(cnt)) %>%
   select(month, monthuse) %>%
