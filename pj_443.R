@@ -33,10 +33,11 @@ summary(reg_bike <- lm(cnt~.+I(trend^2), data = bike[train_index,]))
 yhat_lm <- predict(reg_bike, bike[test_index,])
 summary((yhat_lm - bike$cnt[test_index])^2)
 ## lasso, first do the variables selection
-bike_x <- model.matrix(cnt~.-1 +I(trend^2), bike[train_index,])
+bike_x <- model.matrix(cnt~. +I(trend^2), bike[train_index,])[,-1]
 lasso_cv <- cv.glmnet(bike_x, bike_y[train_index])
 coef(lasso_bike <- glmnet(bike_x, bike_y[train_index], lambda = lasso_cv$lambda.1se))
-bike_x_test <- model.matrix(cnt~.-1 +I(trend^2), bike[test_index,])
+bike_x_test <- model.matrix(cnt~. +I(trend^2), bike[test_index,])[,-1]
+yhat_lasso <- predict(lasso_bike, bike_x_test)
 summary((yhat_lasso - bike$cnt[test_index])^2)
 ## knn regression
 yhat_knn <- knn.reg(bike_x, bike_x_test, bike_y, k = 10)
