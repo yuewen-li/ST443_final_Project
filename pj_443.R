@@ -19,8 +19,8 @@ bike <- bike_raw %>%
   arrange(t1, t2) %>%
   filter(is.na(month) == F) %>%
   mutate(trend = seq(1, 17413)) %>%
-  mutate(sin = sin(trend/(24*365))) %>%
-  mutate(cos = cos(trend/(24*365))) 
+  mutate(sin = sin(2*pi*trend/(24*365))) %>%
+  mutate(cos = cos(2*pi*trend/(24*365))) 
 bike
 bike_y <- bike$cnt
 ## devide testing set and training set
