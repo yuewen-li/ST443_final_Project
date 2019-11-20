@@ -14,7 +14,7 @@ simu <- function(p,delta){
   # set diag to be delta
   diag(b) <- delta
   # standardise b to have unit diagonals
-  theta <- cor(b)
+  theta <- cov2cor(b)
   # solve for the covariance matrix for Gaussian distribution
   sigma <- solve(theta)
   return(sigma)
