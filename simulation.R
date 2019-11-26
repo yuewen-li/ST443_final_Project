@@ -114,6 +114,7 @@ ref <- simu(10,2)
 (out1 <- tfpr(res1,ref))
 (out2 <- tfpr(res2,ref))
 (out3 <- tfpr(res3,ref))
+par(mfrow=c(1,3))
 # plot roc curve for nodewise lasso1
 roc1 <- matrix(NA, 100, 2)
 for (i in seq(1:100)){
@@ -138,3 +139,57 @@ for (i in seq(1:1000)){
   roc3[i,] <- tfpr(res3,ref)
 }
 plot(roc3[,2],roc3[,1],type='l')
+
+# try n=p=100
+ref <- simu(100,4)
+# plot roc curve for nodewise lasso1
+roc12 <- matrix(NA, 100, 2)
+for (i in seq(1:100)){
+  lambda <- i/1000
+  res1 <- edge(100,100,4,lambda = lambda,type='1')
+  roc12[i,] <- tfpr(res1,ref)
+}
+plot(roc12[,2],roc12[,1],type='l')
+# for nodewise lasso2
+roc22 <- matrix(NA, 100, 2)
+for (i in seq(1:100)){
+  lambda <- i/100
+  res2 <- edge(100,100,4,lambda = lambda,type='2')
+  roc22[i,] <- tfpr(res2,ref)
+}
+plot(roc22[,2],roc22[,1],type='l')
+# for graphic lasso
+roc32 <- matrix(NA, 1000, 2)
+for (i in seq(1:1000)){
+  lambda <- i/1000
+  res3 <- graphic(100,100,4,rho = lambda)
+  roc32[i,] <- tfpr(res3,ref)
+}
+plot(roc32[,2],roc32[,1],type='l')
+
+# try n=60, p=100
+ref <- simu(100,4)
+# plot roc curve for nodewise lasso1
+roc13 <- matrix(NA, 100, 2)
+for (i in seq(1:100)){
+  lambda <- i/1000
+  res1 <- edge(60,100,4,lambda = lambda,type='1')
+  roc13[i,] <- tfpr(res1,ref)
+}
+plot(roc13[,2],roc13[,1],type='l')
+# for nodewise lasso2
+roc23 <- matrix(NA, 100, 2)
+for (i in seq(1:100)){
+  lambda <- i/100
+  res2 <- edge(60,100,4,lambda = lambda,type='2')
+  roc23[i,] <- tfpr(res2,ref)
+}
+plot(roc23[,2],roc23[,1],type='l')
+# for graphic lasso
+roc33 <- matrix(NA, 1000, 2)
+for (i in seq(1:1000)){
+  lambda <- i/1000
+  res3 <- graphic(60,100,4,rho = lambda)
+  roc33[i,] <- tfpr(res3,ref)
+}
+plot(roc33[,2],roc33[,1],type='l')
