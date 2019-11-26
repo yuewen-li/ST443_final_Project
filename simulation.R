@@ -2,8 +2,8 @@ library(MASS)
 library(glmnet)
 
 # define a function to generate covariance matrix with dimension p
-simu <- function(p,delta){
-  set.seed(20191118)
+simu <- function(p,delta,seed=20191118){
+  set.seed(seed)
   # create p^2 uniform random numbers
   rand <- runif(p*p)
   # with prob 0.1 to be 0.5, prob 0.9 to be 0
@@ -18,8 +18,8 @@ simu <- function(p,delta){
 }
 
 # generate n random samples
-simu2 <- function(n,p,delta){
-  a <- simu(p,delta)
+simu2 <- function(n,p,delta,seed=20191118){
+  a <- simu(p,delta,seed=seed)
   # standardise b to have unit diagonals
   theta <- cov2cor(a)
   # solve for the covariance matrix for Gaussian distribution
@@ -31,14 +31,23 @@ simu2 <- function(n,p,delta){
 
 # node-wise lasso
 # calc estimated edge matrix
-node_wise<-function(n,p,delta){
-  dat <- simu2(n,p,delta)
+node_wise<-function(n,p,delta,method='min',seed=20191118){
+  dat <- simu2(n,p,delta,seed=seed)
   coef_<-rep(0,p)
   for (i in 1:p) {
-    fit_node <-cv.glmnet(dat[,-i],dat[,i])
+    fit_node <-cv.glmnet(dat[,-i],dat[,i],intercept=F)
     
     # the value of lambda to be continued...
-    coefficients<-coef(glmnet(dat[,-i],dat[,i], lambda=fit_node$lambda.min))
+    if (method=='min'){
+      coefficients<-coef(glmnet(dat[,-i],dat[,i], lambda=fit_node$lambda.min,intercept = F))
+    }
+    # fit lasso based on 1se rule
+    else if (method=='1se'){
+      coefficients<-coef(glmnet(dat[,-i],dat[,i], lambda=fit_node$lambda.1se,intercept = F))
+      }
+    else {cat('available methods:1se and min')
+      break
+      }
     coefficients<-as.vector(coefficients)
     swap<-coefficients[i]
     coefficients[i]<-coefficients[1]
@@ -51,21 +60,31 @@ node_wise<-function(n,p,delta){
 }
 
 # transform
-edge<-function(n,p,delta){
-  node<-node_wise(n,p,delta)
+edge<-function(n,p,delta,type,method='min',seed=20191118){
+  node<-node_wise(n,p,delta,method='min',seed=seed)
   for (i in c(1:p-1)) {
     for (j in seq(i+1,p)){
+      # specify node-wise lasso 1 or lasso 2
+      if (type=='1'){
       # node-wise lasso 1: both are non-zero
       if(isTRUE((node[i,j]!=0) && (node[j,i]!=0)))
-      # node-wise lasso 2: either is non-zero
-      # if(isTRUE((node[i,j]!=0) || (node[j,i]!=0)))
         node[i,j]<-1
       else
         node[i,j]<-0
+      }
+      else if (type=='2'){
+      # node-wise lasso 2: either is non-zero
+      if(isTRUE((node[i,j]!=0) || (node[j,i]!=0)))
+        node[i,j]<-1
+      else
+        node[i,j]<-0
+      }
     }
   }
   node[lower.tri(node)] <- t(node)[lower.tri(node)]
   return(node)
 }
-res=edge(1000,10,2)
+res1=edge(1000,10,2,type='1')
+res2=edge(1000,10,2,type='2')
 original<-simu(10,2)
+
