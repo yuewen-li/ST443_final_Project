@@ -1,3 +1,4 @@
+
 library(MASS)
 library(glmnet)
 
@@ -31,23 +32,12 @@ simu2 <- function(n,p,delta,seed=20191118){
 
 # node-wise lasso
 # calc estimated edge matrix
-node_wise<-function(n,p,delta,method='min',seed=20191118){
+node_wise<-function(n,p,delta,lambda=1,seed=20191118){
   dat <- simu2(n,p,delta,seed=seed)
   coef_<-rep(0,p)
   for (i in 1:p) {
-    fit_node <-cv.glmnet(dat[,-i],dat[,i],intercept=F)
-    
     # the value of lambda to be continued...
-    if (method=='min'){
-      coefficients<-coef(glmnet(dat[,-i],dat[,i], lambda=fit_node$lambda.min,intercept = F))
-    }
-    # fit lasso based on 1se rule
-    else if (method=='1se'){
-      coefficients<-coef(glmnet(dat[,-i],dat[,i], lambda=fit_node$lambda.1se,intercept = F))
-      }
-    else {cat('available methods:1se and min')
-      break
-      }
+    coefficients<-coef(glmnet(dat[,-i],dat[,i], lambda=lambda,intercept = F))
     coefficients<-as.vector(coefficients)
     swap<-coefficients[i]
     coefficients[i]<-coefficients[1]
@@ -60,8 +50,8 @@ node_wise<-function(n,p,delta,method='min',seed=20191118){
 }
 
 # transform
-edge<-function(n,p,delta,type,method='min',seed=20191118){
-  node<-node_wise(n,p,delta,method='min',seed=seed)
+edge<-function(n,p,delta,type,lambda=1,seed=20191118){
+  node<-node_wise(n,p,delta,lambda=lambda,seed=seed)
   for (i in c(1:p-1)) {
     for (j in seq(i+1,p)){
       # specify node-wise lasso 1 or lasso 2
@@ -87,4 +77,65 @@ edge<-function(n,p,delta,type,method='min',seed=20191118){
 res1=edge(1000,10,2,type='1')
 res2=edge(1000,10,2,type='2')
 original<-simu(10,2)
+
+library(glasso)
+# calculate edge of graphic lasso model
+graphic <- function(n,p,delta,rho,seed=20191118){
+  dat <- simu2(n,p,delta,seed=seed)
+  cov <- cov(dat)
+  glasso <- glasso(cov,rho)
+  wi <- glasso$wi
+  wi[!wi==0] <- 1
+  return(wi)
+}
+res3 <- graphic(1000,10,2,0.1)
+
+# compute TPR and FPR
+# input for data and reference is matrix
+tfpr <- function(data, reference){
+  dim <- ncol(data)
+  data[!data==0] <- 1
+  reference[!reference==0] <- 1
+  # flatten the matrix to vector
+  data_flat <- as.vector(data)
+  ref_flat <- as.vector(reference)
+  # extract the diagnal elements
+  diag_index <- (dim)*seq(0,dim-1)+seq(1,dim)
+  data_flat <- data_flat[-diag_index]
+  ref_flat <- ref_flat[-diag_index]
+  # calculate TPR, TPR=TP/P
+  tpr <- length(ref_flat[(data_flat==1)&(ref_flat==1)])/length(ref_flat[ref_flat==1])
+  # calculate FPR, FPR=FP/N
+  fpr <- length(ref_flat[(data_flat==1)&(ref_flat==0)])/length(ref_flat[ref_flat==0])
+  out <- c(tpr=tpr,fpr=fpr)
+  return(out)
+}
+ref <- simu(10,2)
+(out1 <- tfpr(res1,ref))
+(out2 <- tfpr(res2,ref))
+(out3 <- tfpr(res3,ref))
+# plot roc curve for nodewise lasso1
+roc1 <- matrix(NA, 100, 2)
+for (i in seq(1:100)){
+  lambda <- i/1000
+  res1 <- edge(1000,10,2,lambda = lambda,type='1')
+  roc1[i,] <- tfpr(res1,ref)
+}
+plot(roc1[,2],roc1[,1],type='l')
+# for nodewise lasso2
+roc2 <- matrix(NA, 100, 2)
+for (i in seq(1:100)){
+  lambda <- i/1000
+  res2 <- edge(1000,10,2,lambda = lambda,type='1')
+  roc2[i,] <- tfpr(res2,ref)
+}
+plot(roc2[,2],roc2[,1],type='l')
+# for graphic lasso
+roc3 <- matrix(NA, 10000, 2)
+for (i in seq(1:10000)){
+  lambda <- i/10000
+  res3 <- graphic(1000,10,2,rho = lambda)
+  roc3[i,] <- tfpr(res3,ref)
+}
+plot(roc3[,2],roc3[,1],type='l')
 
