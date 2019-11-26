@@ -125,17 +125,16 @@ plot(roc1[,2],roc1[,1],type='l')
 # for nodewise lasso2
 roc2 <- matrix(NA, 100, 2)
 for (i in seq(1:100)){
-  lambda <- i/1000
-  res2 <- edge(1000,10,2,lambda = lambda,type='1')
+  lambda <- i/100
+  res2 <- edge(1000,10,2,lambda = lambda,type='2')
   roc2[i,] <- tfpr(res2,ref)
 }
 plot(roc2[,2],roc2[,1],type='l')
 # for graphic lasso
-roc3 <- matrix(NA, 10000, 2)
-for (i in seq(1:10000)){
-  lambda <- i/10000
+roc3 <- matrix(NA, 1000, 2)
+for (i in seq(1:1000)){
+  lambda <- i/1000
   res3 <- graphic(1000,10,2,rho = lambda)
   roc3[i,] <- tfpr(res3,ref)
 }
 plot(roc3[,2],roc3[,1],type='l')
-
