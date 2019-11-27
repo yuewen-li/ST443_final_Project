@@ -117,10 +117,11 @@ tfpr <- function(data, reference){
 par(mfrow=c(1,3))
 
 # plot roc curve
+# the range of lambda should be reconsidered
 roc <- function(n,p,delta,type,ref){
-  roc_curve <- matrix(NA, 100, 2)
-  for (i in seq(1:100)){
-    lambda <- i/100
+  roc_curve <- matrix(NA, 1000, 2)
+  for (i in seq(1:1000)){
+    lambda <- i/1000
     if(type=='g')
       res <- graphic(n,p,delta,rho = lambda)
     else
@@ -128,11 +129,23 @@ roc <- function(n,p,delta,type,ref){
     roc_curve[i,] <- tfpr(res,ref)
   }
   plot(roc_curve[,2],roc_curve[,1],type='l',xlab = 'fpr',ylab = 'tpr',main = 'ROC curve',xlim = c(0,1),ylim = c(0,1))
+  return(roc_curve)
 }
 
-roc(1000,10,2,type='g',original)
+test <- roc(1000,10,2,type='g',original)
 roc(1000,10,2,type='1',original)
 roc(1000,10,2,type='2',original)
+
+# calc auc
+calc_auc <- function(data){
+  data <- data[order(data[,2]),]
+  auc <- 0
+  for(i in 2:nrow(data)){
+    auc = auc + (data[i,2]-data[i-1,2]) * data[i,1]
+  }
+  return(auc)
+}
+a <- calc_auc(test)
 
 # try n=p=100
 ref <- simu(100,4)
