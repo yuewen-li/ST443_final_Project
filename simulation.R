@@ -1,7 +1,7 @@
 
 library(MASS)
 library(glmnet)
-
+library(tidyverse)
 # define a function to generate covariance matrix with dimension p
 simu <- function(p,delta,seed=20191118){
   set.seed(seed)
@@ -56,18 +56,18 @@ edge<-function(n,p,delta,type,lambda=1,seed=20191118){
     for (j in seq(i+1,p)){
       # specify node-wise lasso 1 or lasso 2
       if (type=='1'){
-      # node-wise lasso 1: both are non-zero
-      if(isTRUE((node[i,j]!=0) && (node[j,i]!=0)))
-        node[i,j]<-1
-      else
-        node[i,j]<-0
+        # node-wise lasso 1: both are non-zero
+        if(isTRUE((node[i,j]!=0) && (node[j,i]!=0)))
+          node[i,j]<-1
+        else
+          node[i,j]<-0
       }
       else if (type=='2'){
-      # node-wise lasso 2: either is non-zero
-      if(isTRUE((node[i,j]!=0) || (node[j,i]!=0)))
-        node[i,j]<-1
-      else
-        node[i,j]<-0
+        # node-wise lasso 2: either is non-zero
+        if(isTRUE((node[i,j]!=0) || (node[j,i]!=0)))
+          node[i,j]<-1
+        else
+          node[i,j]<-0
       }
     }
   }
@@ -118,23 +118,27 @@ par(mfrow=c(1,3))
 
 # plot roc curve
 # the range of lambda should be reconsidered
-roc <- function(n,p,delta,type,ref){
-  roc_curve <- matrix(NA, 1000, 2)
-  for (i in seq(1:1000)){
-    lambda <- i/1000
+roc <- function(n,p,delta,type,ref,shrink,k=100){
+  roc_curve <- matrix(NA, k+2, 2)
+  for (i in seq(1:k)){
+    lambda <- i^2/shrink
     if(type=='g')
       res <- graphic(n,p,delta,rho = lambda)
     else
       res <- edge(n,p,delta,lambda = lambda,type=type)
     roc_curve[i,] <- tfpr(res,ref)
   }
+  roc_curve[k+1,] <- c(1,1)
+  roc_curve[k+2,] <- c(0,0)
+  roc_curve <- as.data.frame(roc_curve) %>%
+    arrange(V2,V1)
   plot(roc_curve[,2],roc_curve[,1],type='l',xlab = 'fpr',ylab = 'tpr',main = 'ROC curve',xlim = c(0,1),ylim = c(0,1))
   return(roc_curve)
 }
 
-test <- roc(1000,10,2,type='g',original)
-roc(1000,10,2,type='1',original)
-roc(1000,10,2,type='2',original)
+test <- roc(1000,10,2,type='g',original,1000)
+roc(1000,10,2,type='1',original,1000)
+roc(1000,10,2,type='2',original,1000)
 
 # calc auc
 calc_auc <- function(data){
@@ -148,13 +152,13 @@ calc_auc <- function(data){
 a <- calc_auc(test)
 
 # try n=p=100
-ref <- simu(100,4)
-roc(100,100,4,type = 'g',ref)
-roc(100,100,4,type = '1',ref)
-roc(100,100,4,type = '2',ref)
+ref <- simu(50,4)
+test <- roc(50,50,4,type = 'g',ref,10000)
+roc(50,50,4,type = '1',ref,10000)
+roc(50,50,4,type = '2',ref,10000)
 
 # try n=60, p=100
-ref <- simu(100,4)
-roc(60,100,4,type = 'g',ref)
-roc(60,100,4,type = '1',ref)
-roc(60,100,4,type = '2',ref)
+ref <- simu(40,4)
+roc(30,40,4,type = 'g',ref,400000,k=500)
+roc(30,40,4,type = '1',ref,100000,k=300)
+roc(30,40,4,type = '2',ref,100000,k=300)
