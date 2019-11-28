@@ -132,7 +132,7 @@ roc <- function(n,p,delta,type,ref,shrink,k=100){
   roc_curve[k+2,] <- c(0,0)
   roc_curve <- as.data.frame(roc_curve) %>%
     arrange(V2,V1)
-  plot(roc_curve[,2],roc_curve[,1],type='l',xlab = 'fpr',ylab = 'tpr',main = 'ROC curve',xlim = c(0,1),ylim = c(0,1))
+  plot(roc_curve[,2],roc_curve[,1],type='s',xlab = 'fpr',ylab = 'tpr',main = 'ROC curve',xlim = c(0,1),ylim = c(0,1))
   return(roc_curve)
 }
 
