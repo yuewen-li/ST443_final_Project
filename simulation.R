@@ -159,6 +159,6 @@ roc(50,50,4,type = '2',ref,10000)
 
 # try n=60, p=100
 ref <- simu(40,4)
-roc(30,40,4,type = 'g',ref,400000,k=500)
+test <- roc(30,40,4,type = 'g',ref,4000000,k=1500)
 roc(30,40,4,type = '1',ref,100000,k=300)
 roc(30,40,4,type = '2',ref,100000,k=300)
