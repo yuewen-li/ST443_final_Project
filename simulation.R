@@ -134,8 +134,9 @@ calc_auc <- function(data){
 
 # plot roc curve
 # the range of lambda should be reconsidered
-roc <- function(n,p,delta,type,ref,shrink,k=100,seed=20191118,plot=T){
+roc <- function(n,p,delta,type,shrink,k=100,seed=20191118,plot=T){
   roc_curve <- matrix(NA, k+2, 6)
+  ref <- simu(p,delta,seed=seed)
   for (i in seq(1:k)){
     lambda <- i^3/shrink
     if(type=='g')
@@ -160,7 +161,7 @@ roc <- function(n,p,delta,type,ref,shrink,k=100,seed=20191118,plot=T){
     return(list(value=roc_curve,auc=auc))
 }
 
-test11 <- roc(1000,10,4,type='g',original,10000,seed=20191120)
+test11 <- roc(1000,10,4,type='g',10000,seed=20191118)
 test12 <- roc(1000,10,4,type='1',original,10000,seed=20191120)
 test13 <- roc(1000,10,4,type='2',original,10000,seed=20191120)
 
@@ -198,12 +199,13 @@ tunning <- function(list){
 (lambda33 <- tunning(test33))
 
 # replicate for 50 times
-rep_50 <- function(n,p,delta,type,ref,shrink,k=100){
+rep_50 <- function(n,p,delta,type,shrink,k=100){
   overall <- data.frame(tpr=NA,fpr=NA,overall=NA,ppv=NA,f1=NA,lambda=NA)
   f1 <- data.frame(tpr=NA,fpr=NA,overall=NA,ppv=NA,f1=NA,lambda=NA)
   auc <- vector()
   for (i in seq(1:50)){
-    value <- roc(n,p,delta,type,ref,shrink,k=k,plot=F,seed=i)
+    original<-simu(p,delta,seed=20191117+i)
+    value <- roc(n,p,delta,type,shrink,k=k,plot=F,seed=20191117+i)
     lambda <- tunning(value)
     overall[i,] <- lambda$overall
     f1[i,] <- lambda$f1
@@ -212,18 +214,22 @@ rep_50 <- function(n,p,delta,type,ref,shrink,k=100){
   return(list(overall=overall,f1=f1,auc=auc))
 }
 # try n=p=100
-original<-simu(10,4)
-rep11 <- rep_50(1000,10,4,type='g',original,10000)
-rep12 <- rep_50(1000,10,4,type='1',original,10000)
-rep13 <- rep_50(1000,10,4,type='2',original,10000)
+rep11 <- rep_50(1000,10,4,type='g',10000)
+rep12 <- rep_50(1000,10,4,type='1',10000)
+rep13 <- rep_50(1000,10,4,type='2',10000)
 # save(rep11,rep12,rep13,file='rep1.RData')
 # load('rep1.RData')
 
 # try n=p=100
-ref <- simu(50,4)
-rep21 <- rep_50(50,50,4,type = 'g',ref,10000)
-rep22 <- rep_50(50,50,4,type = '1',ref,10000)
-rep23 <- rep_50(50,50,4,type = '2',ref,10000)
+rep21 <- rep_50(50,50,4,type = 'g',10000)
+rep22 <- rep_50(50,50,4,type = '1',10000)
+rep23 <- rep_50(50,50,4,type = '2',10000)
 # save(rep21,rep22,rep23,file='rep2.RData')
 # load('rep2.RData')
 
+# try n=60, p=100
+rep31 <- rep_50(30,40,4,type = 'g',4000000,k=1500)
+rep32 <- rep_50(30,40,4,type = '1',100000,k=300)
+rep33 <- rep_50(30,40,4,type = '2',100000,k=300)
+# save(rep31,rep32,rep33,file='rep3.RData')
+# load('rep3.RData')
