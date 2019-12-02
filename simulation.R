@@ -74,9 +74,9 @@ edge<-function(n,p,delta,type,lambda=1,seed=20191118){
   node[lower.tri(node)] <- t(node)[lower.tri(node)]
   return(node)
 }
-res1=edge(1000,10,2,type='1')
-res2=edge(1000,10,2,type='2')
-original<-simu(10,2)
+res1=edge(1000,10,4,type='1')
+res2=edge(1000,10,4,type='2')
+original<-simu(10,4)
 
 library(glasso)
 # calculate edge of graphic lasso model
@@ -88,7 +88,7 @@ graphic <- function(n,p,delta,rho,seed=20191118){
   wi[!wi==0] <- 1
   return(wi)
 }
-res3 <- graphic(1000,10,2,0.1)
+res3 <- graphic(1000,10,4,0.1)
 
 # compute TPR and FPR
 # input for data and reference is matrix
@@ -137,11 +137,11 @@ calc_auc <- function(data){
 roc <- function(n,p,delta,type,ref,shrink,k=100,seed=20191118,plot=T){
   roc_curve <- matrix(NA, k+2, 6)
   for (i in seq(1:k)){
-    lambda <- i^2/shrink
+    lambda <- i^3/shrink
     if(type=='g')
-      res <- graphic(n,p,delta,rho = lambda)
+      res <- graphic(n,p,delta,rho = lambda,seed=seed)
     else
-      res <- edge(n,p,delta,lambda = lambda,type=type)
+      res <- edge(n,p,delta,lambda = lambda,type=type,seed=seed)
     roc_curve[i,1:5] <- tfpr(res,ref)
     roc_curve[i,6] <- lambda
   }
@@ -160,9 +160,9 @@ roc <- function(n,p,delta,type,ref,shrink,k=100,seed=20191118,plot=T){
     return(list(value=roc_curve,auc=auc))
 }
 
-test11 <- roc(1000,10,4,type='g',original,1000)
-test12 <- roc(1000,10,4,type='1',original,1000)
-test13 <- roc(1000,10,4,type='2',original,1000)
+test11 <- roc(1000,10,4,type='g',original,10000,seed=20191120)
+test12 <- roc(1000,10,4,type='1',original,10000,seed=20191120)
+test13 <- roc(1000,10,4,type='2',original,10000,seed=20191120)
 
 
 # try n=p=100
@@ -197,13 +197,12 @@ tunning <- function(list){
 (lambda32 <- tunning(test32))
 (lambda33 <- tunning(test33))
 
-
 # replicate for 50 times
-rep1 <- function(n,p,delta,type,ref,shrink,k=100){
-  overall <- matrix(NA,50,6)
-  f1 <- matrix(NA,50,6)
+rep_50 <- function(n,p,delta,type,ref,shrink,k=100){
+  overall <- data.frame(tpr=NA,fpr=NA,overall=NA,ppv=NA,f1=NA,lambda=NA)
+  f1 <- data.frame(tpr=NA,fpr=NA,overall=NA,ppv=NA,f1=NA,lambda=NA)
   auc <- vector()
-  for (i in seq(1:2)){
+  for (i in seq(1:50)){
     value <- roc(n,p,delta,type,ref,shrink,k=k,plot=F,seed=i)
     lambda <- tunning(value)
     overall[i,] <- lambda$overall
@@ -212,4 +211,19 @@ rep1 <- function(n,p,delta,type,ref,shrink,k=100){
   }
   return(list(overall=overall,f1=f1,auc=auc))
 }
-a <- rep1(1000,10,4,type='g',original,1000)
+# try n=p=100
+original<-simu(10,4)
+rep11 <- rep_50(1000,10,4,type='g',original,10000)
+rep12 <- rep_50(1000,10,4,type='1',original,10000)
+rep13 <- rep_50(1000,10,4,type='2',original,10000)
+# save(rep11,rep12,rep13,file='rep1.RData')
+# load('rep1.RData')
+
+# try n=p=100
+ref <- simu(50,4)
+rep21 <- rep_50(50,50,4,type = 'g',ref,10000)
+rep22 <- rep_50(50,50,4,type = '1',ref,10000)
+rep23 <- rep_50(50,50,4,type = '2',ref,10000)
+# save(rep21,rep22,rep23,file='rep2.RData')
+# load('rep2.RData')
+
