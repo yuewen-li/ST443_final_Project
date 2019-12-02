@@ -107,7 +107,13 @@ tfpr <- function(data, reference){
   tpr <- length(ref_flat[(data_flat==1)&(ref_flat==1)])/length(ref_flat[ref_flat==1])
   # calculate FPR, FPR=FP/N
   fpr <- length(ref_flat[(data_flat==1)&(ref_flat==0)])/length(ref_flat[ref_flat==0])
-  out <- c(tpr=tpr,fpr=fpr)
+  # calculate overall prediction accuracy
+  overall <- length(ref_flat[data_flat==ref_flat])/length(ref_flat)
+  # calculate precision
+  ppv <- length(ref_flat[(data_flat==1)&(ref_flat==1)])/length(data_flat[data_flat==1])
+  # calculate F1 score
+  f1 <- 2*ppv*tpr/(ppv+tpr)
+  out <- c(tpr=tpr,fpr=fpr,overall=overall,ppv=ppv,f1=f1)
   return(out)
 }
 
@@ -115,30 +121,6 @@ tfpr <- function(data, reference){
 (out2 <- tfpr(res2,original))
 (out3 <- tfpr(res3,original))
 par(mfrow=c(1,3))
-
-# plot roc curve
-# the range of lambda should be reconsidered
-roc <- function(n,p,delta,type,ref,shrink,k=100){
-  roc_curve <- matrix(NA, k+2, 2)
-  for (i in seq(1:k)){
-    lambda <- i^2/shrink
-    if(type=='g')
-      res <- graphic(n,p,delta,rho = lambda)
-    else
-      res <- edge(n,p,delta,lambda = lambda,type=type)
-    roc_curve[i,] <- tfpr(res,ref)
-  }
-  roc_curve[k+1,] <- c(1,1)
-  roc_curve[k+2,] <- c(0,0)
-  roc_curve <- as.data.frame(roc_curve) %>%
-    arrange(V2,V1)
-  plot(roc_curve[,2],roc_curve[,1],type='s',xlab = 'fpr',ylab = 'tpr',main = 'ROC curve',xlim = c(0,1),ylim = c(0,1))
-  return(roc_curve)
-}
-
-test <- roc(1000,10,2,type='g',original,1000)
-roc(1000,10,2,type='1',original,1000)
-roc(1000,10,2,type='2',original,1000)
 
 # calc auc
 calc_auc <- function(data){
@@ -149,16 +131,85 @@ calc_auc <- function(data){
   }
   return(auc)
 }
-a <- calc_auc(test)
+
+# plot roc curve
+# the range of lambda should be reconsidered
+roc <- function(n,p,delta,type,ref,shrink,k=100,seed=20191118,plot=T){
+  roc_curve <- matrix(NA, k+2, 6)
+  for (i in seq(1:k)){
+    lambda <- i^2/shrink
+    if(type=='g')
+      res <- graphic(n,p,delta,rho = lambda)
+    else
+      res <- edge(n,p,delta,lambda = lambda,type=type)
+    roc_curve[i,1:5] <- tfpr(res,ref)
+    roc_curve[i,6] <- lambda
+  }
+  roc_curve[k+1,] <- c(1,1,NA,NA,NA,0)
+  roc_curve[k+2,] <- c(0,0,NA,NA,NA,Inf)
+  roc_curve <- as.data.frame(roc_curve) %>%
+    arrange(V2,V1)
+  colnames(roc_curve) <- c('tpr','fpr','overall','ppv','f1','lambda')
+  auc <- calc_auc(roc_curve[,1:2])
+  if (plot == T){
+    plot(roc_curve[,2],roc_curve[,1],type='s',xlab = 'fpr',ylab = 'tpr',main = 'ROC curve',xlim = c(0,1),ylim = c(0,1))
+    mtext(paste('auc =', round(auc,3)),3)
+  }
+  roc_curve <- roc_curve %>%
+    arrange(lambda)
+    return(list(value=roc_curve,auc=auc))
+}
+
+test11 <- roc(1000,10,4,type='g',original,1000)
+test12 <- roc(1000,10,4,type='1',original,1000)
+test13 <- roc(1000,10,4,type='2',original,1000)
+
 
 # try n=p=100
 ref <- simu(50,4)
-test <- roc(50,50,4,type = 'g',ref,10000)
-roc(50,50,4,type = '1',ref,10000)
-roc(50,50,4,type = '2',ref,10000)
+test21 <- roc(50,50,4,type = 'g',ref,10000)
+test22 <- roc(50,50,4,type = '1',ref,10000)
+test23 <- roc(50,50,4,type = '2',ref,10000)
 
 # try n=60, p=100
 ref <- simu(40,4)
-test <- roc(30,40,4,type = 'g',ref,4000000,k=1500)
-roc(30,40,4,type = '1',ref,100000,k=300)
-roc(30,40,4,type = '2',ref,100000,k=300)
+test31 <- roc(30,40,4,type = 'g',ref,4000000,k=1500)
+test32 <- roc(30,40,4,type = '1',ref,100000,k=300)
+test33 <- roc(30,40,4,type = '2',ref,100000,k=300)
+
+# find the best tuning parameter for each model
+# select tuning parameter based on accuracy rate and F1 score
+tunning <- function(list){
+  value <- list$value
+  value <- value[-1,]
+  value <- value[-nrow(value),]
+  lambda_overall <- value[which.max(value$overall),]
+  lambda_f1 <- value[which.max(value$f1),]
+  return(list(overall=lambda_overall,f1=lambda_f1))
+}
+(lambda11 <- tunning(test11))
+(lambda12 <- tunning(test12))
+(lambda13 <- tunning(test13))
+(lambda21 <- tunning(test21))
+(lambda22 <- tunning(test22))
+(lambda23 <- tunning(test23))
+(lambda31 <- tunning(test31))
+(lambda32 <- tunning(test32))
+(lambda33 <- tunning(test33))
+
+
+# replicate for 50 times
+rep1 <- function(n,p,delta,type,ref,shrink,k=100){
+  overall <- matrix(NA,50,6)
+  f1 <- matrix(NA,50,6)
+  auc <- vector()
+  for (i in seq(1:2)){
+    value <- roc(n,p,delta,type,ref,shrink,k=k,plot=F,seed=i)
+    lambda <- tunning(value)
+    overall[i,] <- lambda$overall
+    f1[i,] <- lambda$f1
+    auc[i] <- value$auc
+  }
+  return(list(overall=overall,f1=f1,auc=auc))
+}
+a <- rep1(1000,10,4,type='g',original,1000)
