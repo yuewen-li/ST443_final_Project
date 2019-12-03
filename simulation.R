@@ -233,3 +233,19 @@ rep32 <- rep_50(30,40,4,type = '1',100000,k=300)
 rep33 <- rep_50(30,40,4,type = '2',100000,k=300)
 # save(rep31,rep32,rep33,file='rep3.RData')
 # load('rep3.RData')
+
+# compare the time spend between models
+library(microbenchmark)
+# for n=1000, p=10
+microbenchmark(edge(1000,10,4,type='1'))
+microbenchmark(edge(1000,10,4,type='2'))
+microbenchmark(graphic(1000,10,4,0.1))
+# for n=50,p=50
+microbenchmark(edge(50,50,4,type='1'))
+microbenchmark(edge(50,50,4,type='2'))
+microbenchmark(graphic(50,50,4,0.1))
+# for n=30,p=40
+microbenchmark(edge(30,40,4,type='1'))
+microbenchmark(edge(30,40,4,type='2'))
+microbenchmark(graphic(30,40,4,0.1))
+# easily see that graphical lasso is far more efficient
