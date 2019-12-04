@@ -50,30 +50,53 @@ node_wise<-function(n,p,delta,lambda=1,seed=20191118){
 }
 
 # transform
+# edge<-function(n,p,delta,type,lambda=1,seed=20191118){
+#   node<-node_wise(n,p,delta,lambda=lambda,seed=seed)
+#   for (i in c(1:p-1)) {
+#     for (j in seq(i+1,p)){
+#       # specify node-wise lasso 1 or lasso 2
+#       if (type=='1'){
+#         # node-wise lasso 1: both are non-zero
+#         if(isTRUE((node[i,j]!=0) && (node[j,i]!=0)))
+#           node[i,j]<-1
+#         else
+#           node[i,j]<-0
+#       }
+#       else if (type=='2'){
+#         # node-wise lasso 2: either is non-zero
+#         if(isTRUE((node[i,j]!=0) || (node[j,i]!=0)))
+#           node[i,j]<-1
+#         else
+#           node[i,j]<-0
+#       }
+#     }
+#   }
+#   node[lower.tri(node)] <- t(node)[lower.tri(node)]
+#   return(node)
+# }
+
+# a more efficient way to transform edge
 edge<-function(n,p,delta,type,lambda=1,seed=20191118){
   node<-node_wise(n,p,delta,lambda=lambda,seed=seed)
-  for (i in c(1:p-1)) {
-    for (j in seq(i+1,p)){
-      # specify node-wise lasso 1 or lasso 2
-      if (type=='1'){
-        # node-wise lasso 1: both are non-zero
-        if(isTRUE((node[i,j]!=0) && (node[j,i]!=0)))
-          node[i,j]<-1
-        else
-          node[i,j]<-0
-      }
-      else if (type=='2'){
-        # node-wise lasso 2: either is non-zero
-        if(isTRUE((node[i,j]!=0) || (node[j,i]!=0)))
-          node[i,j]<-1
-        else
-          node[i,j]<-0
-      }
-    }
+  upper<-node[upper.tri(node)]
+  lower<-node[lower.tri(node)]
+  node<-matrix(0,p,p)
+  if(type=='1'){
+    # node-wise lasso 1: both are non-zero
+    upper[(upper!=0)&(lower!=0)]<-1
+    node[upper.tri(node, diag=FALSE)] <- upper
+    node[lower.tri(node)] <- t(node)[lower.tri(node)]
   }
-  node[lower.tri(node)] <- t(node)[lower.tri(node)]
+  if(type=='2'){
+    # node-wise lasso 2: either is non-zero
+    upper[(upper!=0)|(lower!=0)]<-1
+    node[upper.tri(node, diag=FALSE)] <- upper
+    node[lower.tri(node)] <- t(node)[lower.tri(node)]
+  }
+  diag(node)<-1
   return(node)
 }
+
 res1=edge(1000,10,4,type='1')
 res2=edge(1000,10,4,type='2')
 original<-simu(10,4)
@@ -213,26 +236,66 @@ rep_50 <- function(n,p,delta,type,shrink,k=100){
   }
   return(list(overall=overall,f1=f1,auc=auc))
 }
-# try n=p=100
+
+# try n=1000,p=10
 rep11 <- rep_50(1000,10,4,type='g',10000)
 rep12 <- rep_50(1000,10,4,type='1',10000)
 rep13 <- rep_50(1000,10,4,type='2',10000)
 # save(rep11,rep12,rep13,file='rep1.RData')
-# load('rep1.RData')
+load('rep1.RData')
 
-# try n=p=100
+auc1=data.frame(g=rep11$auc,nw1=rep12$auc,nw2=rep13$auc)
+boxplot(auc1,main='Boxplot of AUC values under three approaches')
+
+fpr1=data.frame(g=rep11$overall['fpr'],nw1=rep12$overall['fpr'],nw2=rep13$overall['fpr'])
+colnames(fpr1)<-c('g','nw1','nw2')
+boxplot(fpr1,main='Boxplot of fpr values under three approaches')
+
+lambda1<-data.frame(g=rep11$overall['lambda'],nw1=rep12$overall['lambda'],nw2=rep13$overall['lambda'])
+summary(lambda1)
+
+# try n=p=50
 rep21 <- rep_50(50,50,4,type = 'g',10000)
 rep22 <- rep_50(50,50,4,type = '1',10000)
 rep23 <- rep_50(50,50,4,type = '2',10000)
 # save(rep21,rep22,rep23,file='rep2.RData')
-# load('rep2.RData')
+load('rep2.RData')
 
-# try n=60, p=100
-rep31 <- rep_50(30,40,4,type = 'g',4000000,k=1500)
-rep32 <- rep_50(30,40,4,type = '1',100000,k=300)
-rep33 <- rep_50(30,40,4,type = '2',100000,k=300)
+auc2=data.frame(g=rep21$auc,nw1=rep22$auc,nw2=rep23$auc)
+boxplot(auc2,main='Boxplot of AUC values under three approaches')
+
+fpr2=data.frame(g=rep21$overall['fpr'],nw1=rep22$overall['fpr'],nw2=rep23$overall['fpr'])
+colnames(fpr2)<-c('g','nw1','nw2')
+boxplot(fpr2,main='Boxplot of fpr values under three approaches')
+
+lambda2<-data.frame(g=rep21$overall['lambda'],nw1=rep22$overall['lambda'],nw2=rep23$overall['lambda'])
+summary(lambda2)
+
+
+# try n=30, p=40
+#rep31 <- rep_50(30,40,4,type = 'g',4000000,k=1500)
+#rep32 <- rep_50(30,40,4,type = '1',100000,k=300)
+#rep33 <- rep_50(30,40,4,type = '2',100000,k=300)
 # save(rep31,rep32,rep33,file='rep3.RData')
 # load('rep3.RData')
+
+#try n=50, p=100
+rep31 <- rep_50(50,100,4,type = 'g',4000000,k=1500)
+rep32 <- rep_50(50,100,4,type = '1',100000,k=300)
+rep33 <- rep_50(50,100,4,type = '2',100000,k=300)
+save(rep31,rep32,rep33,file='rep31.RData')
+load('rep31.RData')
+
+auc3=data.frame(g=rep31$auc,nw1=rep32$auc,nw2=rep33$auc)
+boxplot(auc3,main='Boxplot of AUC values under three approaches')
+
+fpr3=data.frame(g=rep31$overall['fpr'],nw1=rep32$overall['fpr'],nw2=rep33$overall['fpr'])
+colnames(fpr3)<-c('g','nw1','nw2')
+boxplot(fpr3,main='Boxplot of fpr values under three approaches')
+
+lambda3<-data.frame(g=rep31$overall['lambda'],nw1=rep32$overall['lambda'],nw2=rep33$overall['lambda'])
+summary(lambda3)
+
 
 # compare the time spend between models
 library(microbenchmark)
@@ -248,4 +311,8 @@ microbenchmark(graphic(50,50,4,0.1))
 microbenchmark(edge(30,40,4,type='1'))
 microbenchmark(edge(30,40,4,type='2'))
 microbenchmark(graphic(30,40,4,0.1))
+# for n=50,p=100
+microbenchmark(edge(50,100,4,type='1'))
+microbenchmark(edge(50,100,4,type='2'))
+microbenchmark(graphic(50,100,4,0.1))
 # easily see that graphical lasso is far more efficient
