@@ -46,6 +46,29 @@ bike_x_test <- model.matrix(cnt~., bike[test_index,])[,-1]
 yhat_lasso <- predict(lasso_bike, bike_x_test)
 summary((yhat_lasso - bike$cnt[test_index])^2)
 
+# poisson regression
+count.fits <- function(model,newdata,y=NULL){
+  fit.mu <- newdata
+  fit.mu$muhat <- predict(model,newdata,type="response")
+  if(!is.null(y)){
+    ind.tmp <- seq(ncol(fit.mu)+1,ncol(fit.mu)+length(y))
+    fit.mu <- cbind(fit.mu,matrix(NA,nrow(fit.mu),length(y)))
+    for(j in seq(nrow(fit.mu))){
+      if(class(model)[1]=="glm")
+        fit.mu[j,ind.tmp] <- dpois(y,lambda=fit.mu$muhat[j])
+      if(class(model)[1]=="negbin"){
+        fit.mu[j,ind.tmp] <- dnbinom(y,size=model$theta,mu=fit.mu$muhat[j])  
+      }  
+    }
+    colnames(fit.mu)[ind.tmp] <- paste("P(Y=",y,")",sep="")
+  }
+  fit.mu
+}
+summary(pois_bike <- glm(cnt~., data=bike[train_index,],family='poisson'))
+yhat <- count.fits(pois_bike,bike[test_index,])
+summary((yhat$muhat - bike$cnt[test_index])^2)
+plot(pois_bike)
+
 ## knn regression
 yhat_knn <- knn.reg(bike_x, bike_x_test, bike_y, k = 10)
 summary((yhat_knn$pred - bike$cnt[test_index])^2) #high mse
