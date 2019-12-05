@@ -181,25 +181,25 @@ roc <- function(n,p,delta,type,shrink,k=100,seed=20191118,plot=T){
   }
   roc_curve <- roc_curve %>%
     arrange(lambda)
-    return(list(value=roc_curve,auc=auc))
+  return(list(value=roc_curve,auc=auc))
 }
 
 test11 <- roc(1000,10,4,type='g',10000,seed=20191118)
-test12 <- roc(1000,10,4,type='1',original,10000,seed=20191120)
-test13 <- roc(1000,10,4,type='2',original,10000,seed=20191120)
+test12 <- roc(1000,10,4,type='1',10000,seed=20191120)
+test13 <- roc(1000,10,4,type='2',10000,seed=20191120)
 
 
 # try n=p=100
 ref <- simu(50,4)
-test21 <- roc(50,50,4,type = 'g',ref,10000)
-test22 <- roc(50,50,4,type = '1',ref,10000)
-test23 <- roc(50,50,4,type = '2',ref,10000)
+test21 <- roc(50,50,4,type = 'g',10000)
+test22 <- roc(50,50,4,type = '1',10000)
+test23 <- roc(50,50,4,type = '2',10000)
 
 # try n=60, p=100
 ref <- simu(40,4)
-test31 <- roc(30,40,4,type = 'g',ref,4000000,k=1500)
-test32 <- roc(30,40,4,type = '1',ref,100000,k=300)
-test33 <- roc(30,40,4,type = '2',ref,100000,k=300)
+test31 <- roc(30,40,4,type = 'g',4000000,k=1500)
+test32 <- roc(30,40,4,type = '1',100000,k=300)
+test33 <- roc(30,40,4,type = '2',100000,k=300)
 
 # find the best tuning parameter for each model
 # select tuning parameter based on accuracy rate and F1 score
@@ -316,3 +316,17 @@ microbenchmark(edge(50,100,4,type='1'))
 microbenchmark(edge(50,100,4,type='2'))
 microbenchmark(graphic(50,100,4,0.1))
 # easily see that graphical lasso is far more efficient
+
+# check for assymmetric of wi
+b <- graphic(30,40,4,1/100000)
+sum(abs((b$wi[lower.tri(b$wi)]-t(b$wi)[lower.tri(t(b$wi))])),na.rm=T)
+# try different tunning parameter rho
+dis <- vector()
+rho <- vector()
+for (i in seq(1,100)){
+  rho[i] <- i/10000
+  b <- graphic(30,40,4,i/10000)
+  dis[i] <- sum(abs((b$wi[lower.tri(b$wi)]-t(b$wi)[lower.tri(t(b$wi))])),na.rm=T)
+}
+plot(rho,dis,type='l',main='degree of asymmetry',xlab='rho',ylab='distance')
+############################################################################
