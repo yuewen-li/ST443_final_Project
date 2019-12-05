@@ -34,16 +34,17 @@ train_index <- index[-test_index]
 summary(reg_bike <- lm(cnt~., data = bike[train_index,]))
 yhat_lm <- predict(reg_bike, bike[test_index,])
 summary((yhat_lm - bike$cnt[test_index])^2) #MSE 315967
-
+par(mfrow=c(2,2))
+plot(reg_bike)
 
 ## lasso, first do the variables selection
 bike_x <- model.matrix(cnt~., bike[train_index,])[,-1] #remove B0
 bike_x
-lasso_cv <- cv.glmnet(bike_x, bike_y[train_index])
+lasso_cv <- cv.glmnet(bike_x, bike_y[train_index],family=c('poisson'))
 lasso_cv
-coef(lasso_bike <- glmnet(bike_x, bike_y[train_index], lambda = lasso_cv$lambda.1se))
+coef(lasso_bike <- glmnet(bike_x, bike_y[train_index], lambda = lasso_cv$lambda.1se,family=c('poisson')))
 bike_x_test <- model.matrix(cnt~., bike[test_index,])[,-1]
-yhat_lasso <- predict(lasso_bike, bike_x_test)
+yhat_lasso <- predict(lasso_bike,bike_x_test,type='response')
 summary((yhat_lasso - bike$cnt[test_index])^2)
 
 # poisson regression
