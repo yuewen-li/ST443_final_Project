@@ -98,3 +98,46 @@ bike_day <- bike %>%
 plot(bike_day$day, bike_day$dayavg)  
 ggplot(bike_hour,aes(time,hourave,color=is_holiday))+
   geom_line()
+
+##Regressiontree
+attach(bike)
+tree.bike<-tree(cnt~. , data=bike, subset=train_index)
+summary(tree.bike)
+plot(tree.bike)
+text(tree.bike, pretty=0)
+
+cv.bike <- cv.tree(tree.bike)
+plot(cv.bike$size, cv.bike$dev, type = "b")
+
+#best=6
+
+#Prune
+prune.bike <- prune.tree(tree.bike, best = 5)
+plot(prune.bike)
+text(prune.bike, pretty = 0)
+
+yhat <- predict(tree.bike, newdata = bike[-train_index,])
+bike.test <- bike[-train_index, "cnt"]
+plot(yhat, bike[-train_index,]$cnt)
+abline(0, 1)
+
+mean((yhat - bike[-train_index,]$cnt) ^ 2)
+
+
+
+###########
+# Bagging #
+###########
+bag.bike<-randomForest(cnt~. , data= bike, subset=train_index, mtry=11, importance=TRUE)
+bag.bike
+
+yhat.bag <-predict(bag.bike, newdata = bike[-train_index,])
+plot(yhat.bag, bike[-train_index,]$cnt)
+abline(0,1)
+
+mean((yhat.bag-bike[-train_index,]$cnt) ^2 )
+
+importance(bag.bike)
+varImpPlot(bag.bike)
+
+# time and is_weekend is most important
