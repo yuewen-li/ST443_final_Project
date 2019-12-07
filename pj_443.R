@@ -19,8 +19,8 @@ bike <- bike_raw %>%
   arrange(t1, t2) %>%
   filter(is.na(month) == F) %>%
   mutate(yday = yday(date)) %>%
-  mutate(sin = sin(2*pi*yday/(24*365))) %>%
-  mutate(cos = cos(2*pi*yday/(24*365))) %>%
+  mutate(sin = sin(2*pi*yday/(365))) %>%
+  mutate(cos = cos(2*pi*yday/(365))) %>%
   select(-c(timestamp,yday,year,month,day,date))
 bike
 bike_y <- bike$cnt
