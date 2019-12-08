@@ -6,6 +6,9 @@ library(FNN)
 library(MASS)
 library(caret)
 library(dplyr)
+library(tree)
+library(randomForest)
+library(gbm)
 
 bike_raw <- as.tibble(read.csv('london_merged.csv'))
 
@@ -48,8 +51,18 @@ fit.ridge <-glmnet(bike_x,bike_y , alpha=0)
 plot(fit.ridge, xvar="lambda", label= TRUE)
 plot(fit.ridge, xvar="dev", label= TRUE)
 cv.ridge <-cv.glmnet(bike_x,bike_y, alpha=0)
+plot(cv.ridge)
 coef(cv.ridge)
 coef(glmnet(bike_x,bike_y ,alpha=0, lambda=cv.ridge$lambda.min))
+opt_lambda <- cv.ridge$lambda.min
+opt_lambda
+fit <- cv.ridge$glmnet.fit
+summary(fit)
+bike_x_test <- model.matrix(cnt~., bike[test_index,])[,-1]
+yhat_ridge <- predict(cv.ridge, bike_x_test,type='response')
+summary((yhat_ridge - bike_y_test)^2)
+
+
 
 ## lasso, first do the variables selection
 bike_x <- model.matrix(cnt~., bike[train_index,])[,-1] #remove B0
@@ -97,10 +110,11 @@ summary((yhat$muhat - bike$cnt[test_index])^2)
 plot(pois_bike)
 
 ## Negative binomial regression
-summary(nebireg <- glm.nb(cnt~., data=bike[train_index,]))
-summary(nebireg)
-# pchisq(2 * (logLik(nebireg) - logLik(pois_bike)), df = 1, lower.tail = FALSE)
-
+neg_bike <- glm.nb(cnt~., data=bike[train_index,])
+summary(neg_bike)
+# testdata=data.frame(bike_y_test)
+# Yhat_neg = predict(neg_bike, newdata=testdata,type="response")
+# RMSE(neg_bike$fupacts, Yhat_neg)
 
 ## knn regression
 # KNN Plot model accuracy vs different values of k=5
