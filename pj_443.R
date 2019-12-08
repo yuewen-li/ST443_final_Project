@@ -110,11 +110,12 @@ summary((yhat$muhat - bike$cnt[test_index])^2)
 plot(pois_bike)
 
 ## Negative binomial regression
-neg_bike <- glm.nb(cnt~., data=bike[train_index,])
+neg_bike <- glm.nb(bike_y~., data=a)
 summary(neg_bike)
-# testdata=data.frame(bike_y_test)
-# Yhat_neg = predict(neg_bike, newdata=testdata,type="response")
-# RMSE(neg_bike$fupacts, Yhat_neg)
+testdata=data.frame(bike_x_test)
+Yhat_neg = predict(neg_bike, newdata=testdata,type="response")
+RMSE(bike_y_test, Yhat_neg)
+
 
 ## knn regression
 # KNN Plot model accuracy vs different values of k=5
