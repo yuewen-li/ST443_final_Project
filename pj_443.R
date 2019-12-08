@@ -3,6 +3,9 @@ library(lubridate)
 library(stats)
 library(glmnet)
 library(FNN)
+library(MASS)
+library(caret)
+library(dplyr)
 
 bike_raw <- as.tibble(read.csv('london_merged.csv'))
 
@@ -29,6 +32,8 @@ set.seed(443)
 index <- seq(1, 17413)
 test_index <- sample(index, 3483)
 train_index <- index[-test_index]
+bike_y_test = bike_y[test_index]
+bike_y = bike_y[-test_index]
 
 ## linear regression
 summary(reg_bike <- lm(cnt~., data = bike[train_index,]))
@@ -37,15 +42,36 @@ summary((yhat_lm - bike$cnt[test_index])^2) #MSE 315967
 par(mfrow=c(2,2))
 plot(reg_bike)
 
+## Ridge regression
+bike_x <- model.matrix(cnt~., bike[train_index,])[,-1] #remove B0
+fit.ridge <-glmnet(bike_x,bike_y , alpha=0)
+plot(fit.ridge, xvar="lambda", label= TRUE)
+plot(fit.ridge, xvar="dev", label= TRUE)
+cv.ridge <-cv.glmnet(bike_x,bike_y, alpha=0)
+coef(cv.ridge)
+coef(glmnet(bike_x,bike_y ,alpha=0, lambda=cv.ridge$lambda.min))
+
 ## lasso, first do the variables selection
 bike_x <- model.matrix(cnt~., bike[train_index,])[,-1] #remove B0
 bike_x
-lasso_cv <- cv.glmnet(bike_x, bike_y[train_index],family=c('poisson'))
+lasso_cv <- cv.glmnet(bike_x, bike_y,family=c('poisson'))
 lasso_cv
-coef(lasso_bike <- glmnet(bike_x, bike_y[train_index], lambda = lasso_cv$lambda.1se,family=c('poisson')))
+coef(lasso_bike <- glmnet(bike_x, bike_y, lambda = lasso_cv$lambda.1se,family=c('poisson')))
 bike_x_test <- model.matrix(cnt~., bike[test_index,])[,-1]
 yhat_lasso <- predict(lasso_bike,bike_x_test,type='response')
 summary((yhat_lasso - bike$cnt[test_index])^2)
+coef(lasso_cv)
+coef(glmnet(bike_x,bike_y, lambda=lasso_cv$lambda.min))
+
+## Validation set approach to select best lambda in Lasso
+set.seed(1)
+train <-sample(nrow(bike_x), 3483, replace=FALSE)
+lasso.train <-glmnet(bike_x[train,], bike_y[train])
+pred.test <-predict(lasso.train, bike_x[-train,])
+rmse <-sqrt(apply((bike_y[-train]-pred.test)^2,2,mean))
+plot(log(lasso.train$lambda), rmse, type="b", xlab="Log(lambda)")
+lambda.best <-lasso.train$lambda[order(rmse)[1]]
+lambda.best
 
 # poisson regression
 count.fits <- function(model,newdata,y=NULL){
@@ -70,9 +96,28 @@ yhat <- count.fits(pois_bike,bike[test_index,])
 summary((yhat$muhat - bike$cnt[test_index])^2)
 plot(pois_bike)
 
+## Negative binomial regression
+summary(nebireg <- glm.nb(cnt~., data=bike[train_index,]))
+summary(nebireg)
+# pchisq(2 * (logLik(nebireg) - logLik(pois_bike)), df = 1, lower.tail = FALSE)
+
+
 ## knn regression
-yhat_knn <- knn.reg(bike_x, bike_x_test, bike_y, k = 10)
+# KNN Plot model accuracy vs different values of k=5
+set.seed(123)
+model <- train(
+  cnt ~., data = bike[train_index,], method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 20
+)
+plot(model)
+model$bestTune
+
+yhat_knn <- knn.reg(bike_x, bike_x_test, bike_y, k = 5)
 summary((yhat_knn$pred - bike$cnt[test_index])^2) #high mse
+
+
 
 #######################
 bike_month <- bike %>%
