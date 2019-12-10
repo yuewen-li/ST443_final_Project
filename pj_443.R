@@ -201,3 +201,17 @@ importance(bag.bike)
 varImpPlot(bag.bike)
 
 # time and is_weekend is most important
+
+############
+# Boosting #
+############
+
+boost.bike <- gbm( cnt ~ ., data = bike[train_index,], distribution = "poisson", n.trees = 5000, interaction.depth = 4)
+
+summary(boost.bike)
+par(mfrow = c(1, 2))
+plot(boost.bike, i="time")
+plot(boost.bike, i='is_weekend')
+
+yhat.boost = predict(boost.bike, newdata = bike[-train_index, ], n.trees = 5000)
+mean((yhat.boost - bike[-train_index,]$cnt) ^ 2)
