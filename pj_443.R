@@ -186,7 +186,7 @@ mean((yhat - bike[-train_index,]$cnt) ^ 2)
 ###########
 # Bagging #
 ###########
-bag.bike<-randomForest(cnt~. , data= bike, subset=train_index, mtry=11, importance=TRUE)
+bag.bike<-randomForest(cnt~. , data= bike, subset=train_index, mtry=4, importance=TRUE)
 bag.bike
 
 yhat.bag <-predict(bag.bike, newdata = bike[-train_index,])
