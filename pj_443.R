@@ -27,7 +27,7 @@ bike <- bike_raw %>%
   mutate(yday = yday(date)) %>%
   mutate(sin = sin(2*pi*yday/(365))) %>%
   mutate(cos = cos(2*pi*yday/(365))) %>%
-  select(-c(timestamp,yday,year,month,day,date))
+  dplyr::select(-c(timestamp,yday,year,month,day,date))
 bike
 bike_y <- bike$cnt
 ## devide testing set and training set
@@ -204,7 +204,7 @@ varImpPlot(bag.bike)
 # Boosting #
 ############
 
-boost.bike <- gbm( cnt ~ ., data = bike[train_index,], distribution = "poisson", n.trees = 5000, interaction.depth = 4)
+boost.bike <- gbm( cnt ~ ., data = bike[train_index,], distribution = "gaussian", n.trees = 5000, interaction.depth = 4)
 
 summary(boost.bike)
 par(mfrow = c(1, 2))
